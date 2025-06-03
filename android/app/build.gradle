@@ -1,0 +1,160 @@
+// File: android/app/build.gradle
+
+// This block applies various Gradle plugins required for the project.
+plugins {
+    // Applies the standard Android application plugin.
+    id "com.android.application"
+    // Applies the Kotlin plugin for Android development.
+    id "kotlin-android"
+    // Applies the Flutter Gradle plugin, which integrates Flutter with the Android build process.
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+// Creates a new Properties object to hold local configuration.
+def localProperties = new Properties()
+// Defines the path to the 'local.properties' file, which is typically in the root project directory.
+// This file is not version controlled and contains local environment settings (e.g., SDK paths, API keys).
+def localPropertiesFile = rootProject.file('local.properties')
+// Checks if the 'local.properties' file exists.
+if (localPropertiesFile.exists()) {
+    // If the file exists, it's opened with a UTF-8 reader.
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        // Loads the properties from the file into the localProperties object.
+        localProperties.load(reader)
+    }
+}
+
+// Retrieves the 'flutter.versionCode' property from local.properties.
+// This is typically set by Flutter tooling during the build process.
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
+// If 'flutter.versionCode' is not found in local.properties, it defaults to '1'.
+if (flutterVersionCode == null) {
+    flutterVersionCode = '1'
+}
+
+// Retrieves the 'flutter.versionName' property from local.properties.
+// This is also typically set by Flutter tooling.
+def flutterVersionName = localProperties.getProperty('flutter.versionName')
+// If 'flutter.versionName' is not found, it defaults to '1.0'.
+if (flutterVersionName == null) {
+    flutterVersionName = '1.0'
+}
+
+// Retrieves the Kotlin version defined in the root project's 'android/build.gradle' (ext.kotlinVersion).
+// If not found there, it defaults to '1.8.22'.
+// It's good practice to define Kotlin version centrally in the root project's build.gradle.
+def kotlin_version = rootProject.ext.has('kotlinVersion') ? rootProject.ext.get('kotlinVersion') : '1.8.22' // Default value if not found
+
+// The 'android' block configures Android-specific build options.
+android {
+    // Sets the application's namespace. This must match your project's package name.
+    // Ensure this is correct for your application.
+    namespace "com.example.cryptography_benchmark_flutter"
+    // Sets the SDK version to compile against.
+    // 'flutter.compileSdkVersion' is provided by the Flutter plugin (as a String, so convert to Integer).
+    compileSdk flutter.compileSdkVersion.toInteger()
+    // Sets the NDK (Native Development Kit) version to be used.
+    // 'flutter.ndkVersion' is provided by the Flutter plugin.
+    ndkVersion flutter.ndkVersion
+
+    // Configures Java compilation options.
+    compileOptions {
+        // Sets the Java source code compatibility to Java 8.
+        sourceCompatibility JavaVersion.VERSION_1_8
+        // Sets the Java target bytecode compatibility to Java 8.
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    // Configures Kotlin compilation options.
+    kotlinOptions {
+        // Sets the JVM target version for Kotlin compiled bytecode to 1.8, compatible with Java 8.
+        jvmTarget = '1.8'
+    }
+
+    // --- Configuration for building native C/C++ code using CMake ---
+    externalNativeBuild {
+        // Configures CMake specific settings.
+        cmake {
+            // Specifies the path to the CMakeLists.txt file for your native code.
+            // This path is relative to this build.gradle file.
+            path "../../native_crypto/CMakeLists.txt"
+            // Optionally, you can specify a particular CMake version to use.
+            // version "3.22.1"
+        }
+    }
+
+    // 'defaultConfig' block defines default settings for all build variants.
+    defaultConfig {
+        // Unique identifier for your application in the Google Play Store.
+        applicationId "com.example.cryptography_benchmark_flutter"
+        // Minimum API level required to run the application.
+        // 'flutter.minSdkVersion' is provided by the Flutter plugin.
+        minSdk flutter.minSdkVersion.toInteger()
+        // Target API level for the application.
+        // 'flutter.targetSdkVersion' is provided by the Flutter plugin.
+        targetSdk flutter.targetSdkVersion.toInteger()
+        // Application's version code (an integer that increments with each release).
+        versionCode flutterVersionCode.toInteger()
+        // Application's version name (a user-friendly string, e.g., "1.0.1").
+        versionName flutterVersionName
+
+        // --- NDK ABI (Application Binary Interface) Filters ---
+        // Specifies the CPU architectures for which to build native libraries.
+        // Including multiple ABIs increases APK size but ensures compatibility with more devices.
+        ndk {
+            abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+        }
+    }
+
+    // --- Packaging Options ---
+    // Configures how files are packaged into the APK.
+    packagingOptions {
+        // These lines resolve conflicts if multiple dependencies include the same native library.
+        // 'pickFirst' tells Gradle to use the first instance it finds of the specified .so file.
+        // This is often necessary for libc++_shared.so when using C++ in your project.
+        pickFirst 'lib/armeabi-v7a/libc++_shared.so'
+        pickFirst 'lib/arm64-v8a/libc++_shared.so'
+        pickFirst 'lib/x86/libc++_shared.so'
+        pickFirst 'lib/x86_64/libc++_shared.so'
+    }
+
+    // 'buildTypes' block configures different build variants (e.g., debug, release).
+    buildTypes {
+        // Configuration for the 'release' build type.
+        release {
+            // Specifies the signing configuration for the release build.
+            // IMPORTANT: 'signingConfigs.debug' uses the debug key. For a production release,
+            // you MUST create and use your own release signing configuration.
+            signingConfig signingConfigs.debug
+        }
+        // You can define other build types here (e.g., a custom 'staging' build type).
+    }
+}
+
+// 'dependencies' block declares the project's dependencies.
+dependencies {
+    // Adds Spongy Castle (a repackage of Bouncy Castle) as a dependency.
+    // This is a cryptography library.
+    implementation 'com.madgag.spongycastle:prov:1.58.0.0'
+}
+
+// 'flutter' block configures Flutter-specific settings for the Android part of the project.
+flutter {
+    // Specifies the root directory of the Flutter project.
+    // '../..' indicates that the Flutter project is two levels up from this 'android/app' directory.
+    source '../..'
+}
+
+// This block configures the Java toolchain version to be used by Gradle for compiling Java sources.
+// For Android Gradle Plugin (AGP) 8.x and newer, JDK 17 is often recommended or required for Gradle itself.
+// This setting influences the JDK used by Gradle tasks, not necessarily the `sourceCompatibility` or `targetCompatibility`
+// of your app's code, which are set in `compileOptions`.
+// If your `compileOptions` target Java 8 (as seen above), ensure this toolchain setting doesn't create incompatibilities
+// or that your Gradle and AGP versions are aligned with this choice.
+// If Gradle's JDK is managed by Android Studio (e.g., via File > Project Structure > SDK Location > Gradle Settings),
+// explicitly setting it here might be redundant or could override the IDE's setting.
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
