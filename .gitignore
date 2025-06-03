@@ -43,18 +43,18 @@ pubspec.lock # Usually committed, but can be ignored if you want strict version 
 /android/app/src/main/jniLibs/ # If you were to manually place .so files, but we build them
 
 # Native build artifacts (iOS - if you were to add iOS support)
-# /ios/build/
-# /ios/Flutter/App.framework
-# /ios/Flutter/Flutter.framework
-# /ios/Flutter/Generated.xcconfig
-# /ios/Flutter/flutter_export_environment.sh
-# /ios/Flutter/GeneratedPluginRegistrant.*
-# /ios/Runner.xcworkspace/xcuserdata/
-# /ios/Runner.xcodeproj/project.xcworkspace/
-# /ios/Runner.xcodeproj/xcuserdata/
-# /ios/.symlinks/
-# /ios/Pods/
-# /ios/Podfile.lock
+ /ios/build/
+ /ios/Flutter/App.framework
+ /ios/Flutter/Flutter.framework
+ /ios/Flutter/Generated.xcconfig
+ /ios/Flutter/flutter_export_environment.sh
+ /ios/Flutter/GeneratedPluginRegistrant.*
+ /ios/Runner.xcworkspace/xcuserdata/
+ /ios/Runner.xcodeproj/project.xcworkspace/
+ /ios/Runner.xcodeproj/xcuserdata/
+ /ios/.symlinks/
+ /ios/Pods/
+ /ios/Podfile.lock
 
 # Native build artifacts (macOS - if you were to add macOS support)
 # /macos/build/
@@ -73,9 +73,12 @@ pubspec.lock # Usually committed, but can be ignored if you want strict version 
 # /windows/runner/CMakeLists.txt.user # User-specific CMake settings
 
 # CMake related build files (from our native_crypto directory and Android's .cxx)
-/native_crypto/build/ # If you ever build native_crypto standalone
-/android/app/.cxx/ # CMake build cache and intermediate files for Android
-/android/app/CMakeLists.txt.user # User-specific CMake settings for the app module
+# If you ever build native_crypto standalone
+/native_crypto/build/
+# CMake build cache and intermediate files for Android
+/android/app/.cxx/
+# User-specific CMake settings for the app module
+/android/app/CMakeLists.txt.user
 
 # Visual Studio Code
 .vscode/
