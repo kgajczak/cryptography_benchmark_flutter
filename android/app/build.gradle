@@ -126,6 +126,9 @@ android {
             // IMPORTANT: 'signingConfigs.debug' uses the debug key. For a production release,
             // you MUST create and use your own release signing configuration.
             signingConfig signingConfigs.debug
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         // You can define other build types here (e.g., a custom 'staging' build type).
     }
