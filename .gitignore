@@ -1,0 +1,92 @@
+# Flutter
+#
+
+# Miscellaneous
+*.class
+*.lock
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+out/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+pubspec.lock # Usually committed, but can be ignored if you want strict version control via pubspec.yaml only
+
+# Native build artifacts (Android)
+/android/build/
+/android/app/build/
+/android/.gradle/
+/android/gradle/
+/android/gradlew
+/android/gradlew.bat
+/android/local.properties # Contains SDK path, should not be committed
+/android/.idea/ # Android Studio specific project files for the android sub-project
+/android/app/src/main/jniLibs/ # If you were to manually place .so files, but we build them
+
+# Native build artifacts (iOS - if you were to add iOS support)
+# /ios/build/
+# /ios/Flutter/App.framework
+# /ios/Flutter/Flutter.framework
+# /ios/Flutter/Generated.xcconfig
+# /ios/Flutter/flutter_export_environment.sh
+# /ios/Flutter/GeneratedPluginRegistrant.*
+# /ios/Runner.xcworkspace/xcuserdata/
+# /ios/Runner.xcodeproj/project.xcworkspace/
+# /ios/Runner.xcodeproj/xcuserdata/
+# /ios/.symlinks/
+# /ios/Pods/
+# /ios/Podfile.lock
+
+# Native build artifacts (macOS - if you were to add macOS support)
+# /macos/build/
+# /macos/Flutter/ephemeral/
+# /macos/.DS_Store
+
+# Native build artifacts (Linux - if you were to add Linux support)
+# /linux/build/
+
+# Native build artifacts (Windows - if you were to add Windows support)
+# /windows/build/
+# /windows/flutter/ephemeral/
+# /windows/runner/Debug/
+# /windows/runner/Profile/
+# /windows/runner/Release/
+# /windows/runner/CMakeLists.txt.user # User-specific CMake settings
+
+# CMake related build files (from our native_crypto directory and Android's .cxx)
+/native_crypto/build/ # If you ever build native_crypto standalone
+/android/app/.cxx/ # CMake build cache and intermediate files for Android
+/android/app/CMakeLists.txt.user # User-specific CMake settings for the app module
+
+# Visual Studio Code
+.vscode/
+
+# Secrets files - uncomment if you have any
+# .env
+# secrets.json
+
+# Specific log files if any
+# *.log
+# logs/
+
+# Test related
+coverage/
