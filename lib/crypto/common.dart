@@ -59,6 +59,21 @@ class BenchmarkResult {
   /// The sum of all decryption times.
   final Duration sumDecryptTime;
 
+  /// The memory usage (RSS) in bytes before the benchmark started.
+  final int initialMemory;
+
+  /// The peak memory usage (RSS) in bytes recorded during the benchmark.
+  final int peakMemory;
+
+  /// The final memory usage (RSS) in bytes after the benchmark finished.
+  final int finalMemory;
+
+  /// The average memory usage (RSS) in bytes per iteration.
+  final int averageMemory;
+
+  /// A calculated property for the change in memory usage.
+  int get memoryDelta => peakMemory - initialMemory;
+
   /// Indicates whether all operations (encryption, decryption, verification)
   /// in this benchmark run completed successfully.
   final bool success;
@@ -78,6 +93,10 @@ class BenchmarkResult {
     required this.avgDecryptTime,
     required this.sumEncryptTime,
     required this.sumDecryptTime,
+    required this.initialMemory,
+    required this.peakMemory,
+    required this.finalMemory,
+    required this.averageMemory,
     this.success = true,
     this.errorMessage,
   });
@@ -101,6 +120,10 @@ class BenchmarkResult {
       avgDecryptTime: Duration.zero,
       sumEncryptTime: Duration.zero,
       sumDecryptTime: Duration.zero,
+      initialMemory: 0,
+      peakMemory: 0,
+      finalMemory: 0,
+      averageMemory: 0,
       success: false, // Mark as failure
       errorMessage: message,
     );
@@ -122,10 +145,19 @@ class BenchmarkResult {
     final sumMs = (sumEncryptTime.inMicroseconds / 1000 +
             sumDecryptTime.inMicroseconds / 1000)
         .toStringAsFixed(3);
-    final sumIterMs = ((sumEncryptTime.inMicroseconds / 1000) * iterations)
-        .toStringAsFixed(3);
 
-    return '${implType.name}, \n${algoType.name}, \ndata: ${dataSize}B, \niter: $iterations \nEncrypt: ${encMs}ms, \nDecrypt: ${decMs}ms, \nSum: ${sumMs}ms \nSum * iter: ${sumIterMs}ms';
+    return '${implType.name},'
+        '\n${algoType.name},'
+        '\ndata: ${dataSize}B,'
+        '\niter: $iterations'
+        '\nEncrypt: ${encMs}ms,'
+        '\nDecrypt: ${decMs}ms,'
+        '\nSum: ${sumMs}ms'
+        '\nInit mem: ${(initialMemory / 1048576).toStringAsFixed(3)}MB'
+        '\nPeak mem: ${(peakMemory / 1048576).toStringAsFixed(3)}MB'
+        '\nFinal mem: ${(finalMemory / 1048576).toStringAsFixed(3)}MB'
+        '\nMax used mem: ${(memoryDelta / 1048576).toStringAsFixed(3)}MB,'
+        '\nAverage mem: ${(averageMemory / 1048576).toStringAsFixed(3)}MB';
   }
 
   String toExportString() {
@@ -136,6 +168,7 @@ class BenchmarkResult {
         .toStringAsFixed(3);
     final sumIterMs = ((sumEncryptTime.inMicroseconds / 1000) * iterations)
         .toStringAsFixed(3);
-    return '$implType;$algoType;$dataSize;$iterations;$encMs;$decMs;$sumMs;$sumIterMs\n';
+
+    return '$implType;$algoType;$dataSize;$iterations;$encMs;$decMs;$sumMs;$sumIterMs;$initialMemory;$peakMemory;$finalMemory\n';
   }
 }

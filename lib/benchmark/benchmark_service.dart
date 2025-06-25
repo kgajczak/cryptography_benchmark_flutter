@@ -1,5 +1,6 @@
 // ignore_for_file: avoid_print
 
+import 'dart:io';
 import 'dart:math';
 
 import 'package:cryptography/cryptography.dart' show SecretKey;
@@ -158,13 +159,19 @@ class BenchmarkService {
       );
     }
 
+    // Measure memory before the test.
+    await Future.delayed(const Duration(milliseconds: 50));
+    final initialRss = ProcessInfo.currentRss;
+    int peakRss = initialRss;
+    int sumRss = 0;
+
     // Generate the data to be encrypted, or use the provided test data.
     final plainText = testData ?? _generateRandomData(dataSize);
     final List<Duration> encryptDurations = [];
     final List<Duration> decryptDurations = [];
 
     print(
-        "Starting benchmark: $implType, $algoType, size: $dataSize B, iterations: $iterations");
+        "Starting benchmark: $implType, $algoType, size: $dataSize B, iterations: $iterations. Initial RSS: ${(initialRss / (1024 * 1024)).toStringAsFixed(2)} MB");
 
     try {
       // The main benchmark loop.
@@ -270,12 +277,23 @@ class BenchmarkService {
               "Verification failed: Decrypted data does not match original plaintext during iteration ${i + 1}");
         }
 
+        // Monitor peak memory usage inside the loop.
+        final currentRss = ProcessInfo.currentRss;
+        sumRss += currentRss;
+        if (currentRss > peakRss) {
+          peakRss = currentRss;
+        }
+
         // For very long benchmarks, yield to the event loop every 100 iterations.
         // This gives the UI a chance to update and prevents the app from appearing frozen.
         if (i > 0 && i % 100 == 0) {
           await Future.delayed(Duration.zero);
         }
       }
+
+      // Measure memory after the test.
+      await Future.delayed(const Duration(milliseconds: 50));
+      final finalRss = ProcessInfo.currentRss;
 
       // Calculate final statistics after all iterations are complete.
       final avgEncrypt = _calculateAverage(encryptDurations);
@@ -284,6 +302,7 @@ class BenchmarkService {
       final sumDecrypt = _calculateSum(decryptDurations);
 
       print("Benchmark finished successfully for: $implType, $algoType.");
+
       // Return a successful result object.
       return BenchmarkResult(
         implType: implType,
@@ -294,6 +313,10 @@ class BenchmarkService {
         avgDecryptTime: avgDecrypt,
         sumEncryptTime: sumEncrypt,
         sumDecryptTime: sumDecrypt,
+        initialMemory: initialRss,
+        peakMemory: peakRss,
+        finalMemory: finalRss,
+        averageMemory: sumRss ~/ iterations,
       );
     } catch (e, s) {
       // Catch any exception during the benchmark process, log it, and return an error result.

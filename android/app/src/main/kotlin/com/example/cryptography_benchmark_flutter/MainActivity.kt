@@ -174,6 +174,7 @@ class MainActivity: FlutterActivity() {
                         // Get Cipher instance for "CHACHA7539" (ChaCha20-Poly1305 AEAD algorithm as per RFC7539)
                         // Explicitly request it from the SpongyCastle/BouncyCastle provider.
                         val cipher = Cipher.getInstance("CHACHA7539", BouncyCastleProvider.PROVIDER_NAME)
+//                        val cipher = Cipher.getInstance("CHACHA")
                         // Initialize cipher for encryption mode
                         cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivParameterSpec)
                         // Perform encryption
@@ -212,6 +213,7 @@ class MainActivity: FlutterActivity() {
                         val secretKeySpec: SecretKey = SecretKeySpec(key, "ChaCha20")
                         val ivParameterSpec = IvParameterSpec(nonce)
                         val cipher = Cipher.getInstance("CHACHA7539", BouncyCastleProvider.PROVIDER_NAME)
+//                        val cipher = Cipher.getInstance("CHACHA")
                         // Initialize cipher for decryption mode
                         cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivParameterSpec)
                         // Perform decryption
