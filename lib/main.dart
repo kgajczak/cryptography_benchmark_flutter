@@ -1,5 +1,8 @@
 // ignore_for_file: avoid_print // For logs from BenchmarkService
 
+import 'dart:developer';
+import 'dart:math' show Random;
+
 import 'package:cryptography_benchmark_flutter/benchmark/benchmark_service.dart';
 // Imports of our files
 import 'package:cryptography_benchmark_flutter/crypto/common.dart';
@@ -33,7 +36,8 @@ class CryptoBenchmarkApp extends StatelessWidget {
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             constraints: BoxConstraints.tight(
-                const Size.fromHeight(50)), // Setting Dropdown height
+              const Size.fromHeight(50),
+            ), // Setting Dropdown height
           ))),
       home: const BenchmarkPage(),
     );
@@ -134,6 +138,101 @@ class _BenchmarkPageState extends State<BenchmarkPage> {
         }
         _isLoading = false; // End loading state
       });
+    }
+  }
+
+  Future<void> _runFullBenchmark() async {
+    // Walidacja i parsowanie danych wejściowych od użytkownika
+    final int? dataSize = int.tryParse(_dataSizeController.text);
+    final int? iterations = int.tryParse(_iterationsController.text);
+
+    if (dataSize == null ||
+        dataSize <= 0 ||
+        iterations == null ||
+        iterations <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter valid data.")),
+      );
+      return;
+    }
+
+    // Pokaż dialog blokujący UI
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Użytkownik nie może zamknąć dialogu
+      builder: (BuildContext context) {
+        return const Dialog(
+          child: Padding(
+            padding: EdgeInsets.all(20.0),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text("Trwa pełny test..."),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    // Lista wszystkich kombinacji do przetestowania
+    const List<Map<String, dynamic>> testSuite = [
+      {
+        'impl': ImplementationType.dart,
+        'algo': AlgorithmType.aesGcm,
+      },
+      {
+        'impl': ImplementationType.platformChannel,
+        'algo': AlgorithmType.aesGcm,
+      },
+      {
+        'impl': ImplementationType.ffi,
+        'algo': AlgorithmType.aesGcm,
+      },
+      {
+        'impl': ImplementationType.dart,
+        'algo': AlgorithmType.chaChaPoly,
+      },
+      {
+        'impl': ImplementationType.platformChannel,
+        'algo': AlgorithmType.chaChaPoly,
+      },
+      {
+        'impl': ImplementationType.ffi,
+        'algo': AlgorithmType.chaChaPoly,
+      },
+    ];
+
+    final testData = _generateRandomData(dataSize);
+
+    // Iteruj przez wszystkie testy
+    for (final testCase in testSuite) {
+      // Upewnij się, że UI jest nadal zamontowane
+      if (!mounted) break;
+
+      final result = await _benchmarkService.runBenchmark(
+        implType: testCase['impl'],
+        algoType: testCase['algo'],
+        dataSize: dataSize,
+        iterations: iterations,
+        testData: testData,
+      );
+
+      // Dodaj wynik do historii
+      setState(() {
+        _resultsHistory.insert(0, result);
+        if (_resultsHistory.length > _maxHistoryLength) {
+          _resultsHistory.removeLast();
+        }
+      });
+
+      // Odstęp 1 sekundy między testami
+      await Future.delayed(const Duration(seconds: 1));
+    }
+
+    // Zamknij dialog po zakończeniu wszystkich testów
+    if (mounted) {
+      Navigator.of(context).pop();
     }
   }
 
@@ -247,13 +346,24 @@ class _BenchmarkPageState extends State<BenchmarkPage> {
               style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   textStyle: const TextStyle(fontSize: 16)),
-              child: _isLoading
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 3, color: Colors.white))
-                  : const Text('Run Benchmark'),
+              child: const Text('Run Benchmark'),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _isLoading ? null : _runFullBenchmark,
+              style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  textStyle: const TextStyle(fontSize: 16)),
+              child: const Text('Run Complex Benchmark'),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              // Disable button if benchmark is running
+              onPressed: _isLoading ? null : _showResultDialog,
+              style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  textStyle: const TextStyle(fontSize: 16)),
+              child: const Text('Show results'),
             ),
             const SizedBox(height: 24),
             const Divider(),
@@ -314,5 +424,39 @@ class _BenchmarkPageState extends State<BenchmarkPage> {
         ),
       ),
     );
+  }
+
+  void _showResultDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final resultHistoryInTxt = _getResultsHistory();
+        log(resultHistoryInTxt);
+        return Dialog.fullscreen(
+          backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: SelectableText((resultHistoryInTxt)),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _getResultsHistory() {
+    String resultHistoryInTxt = '';
+    for (var element in _resultsHistory) {
+      resultHistoryInTxt += element.toExportString();
+    }
+    return resultHistoryInTxt;
+  }
+
+  // Wygeneruj losowe dane do testów
+  Uint8List _generateRandomData(int sizeInBytes) {
+    final random = Random.secure();
+    return Uint8List.fromList(
+        List.generate(sizeInBytes, (_) => random.nextInt(256)));
   }
 }

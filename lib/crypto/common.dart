@@ -53,6 +53,12 @@ class BenchmarkResult {
   /// The average time taken for a single decryption operation.
   final Duration avgDecryptTime;
 
+  /// The sum of all encryption times.
+  final Duration sumEncryptTime;
+
+  /// The sum of all decryption times.
+  final Duration sumDecryptTime;
+
   /// Indicates whether all operations (encryption, decryption, verification)
   /// in this benchmark run completed successfully.
   final bool success;
@@ -70,6 +76,8 @@ class BenchmarkResult {
     required this.iterations,
     required this.avgEncryptTime,
     required this.avgDecryptTime,
+    required this.sumEncryptTime,
+    required this.sumDecryptTime,
     this.success = true,
     this.errorMessage,
   });
@@ -91,6 +99,8 @@ class BenchmarkResult {
       iterations: iterations,
       avgEncryptTime: Duration.zero, // Times are zero in case of an error
       avgDecryptTime: Duration.zero,
+      sumEncryptTime: Duration.zero,
+      sumDecryptTime: Duration.zero,
       success: false, // Mark as failure
       errorMessage: message,
     );
@@ -109,6 +119,23 @@ class BenchmarkResult {
     // Formatting time to milliseconds with three decimal places for better readability.
     final encMs = (avgEncryptTime.inMicroseconds / 1000).toStringAsFixed(3);
     final decMs = (avgDecryptTime.inMicroseconds / 1000).toStringAsFixed(3);
-    return 'Result($implType, $algoType, data: ${dataSize}B, iter: $iterations): Encrypt=${encMs}ms, Decrypt=${decMs}ms';
+    final sumMs = (sumEncryptTime.inMicroseconds / 1000 +
+            sumDecryptTime.inMicroseconds / 1000)
+        .toStringAsFixed(3);
+    final sumIterMs = ((sumEncryptTime.inMicroseconds / 1000) * iterations)
+        .toStringAsFixed(3);
+
+    return '${implType.name}, \n${algoType.name}, \ndata: ${dataSize}B, \niter: $iterations \nEncrypt: ${encMs}ms, \nDecrypt: ${decMs}ms, \nSum: ${sumMs}ms \nSum * iter: ${sumIterMs}ms';
+  }
+
+  String toExportString() {
+    final encMs = (avgEncryptTime.inMicroseconds / 1000).toStringAsFixed(3);
+    final decMs = (avgDecryptTime.inMicroseconds / 1000).toStringAsFixed(3);
+    final sumMs = (sumEncryptTime.inMicroseconds / 1000 +
+            sumDecryptTime.inMicroseconds / 1000)
+        .toStringAsFixed(3);
+    final sumIterMs = ((sumEncryptTime.inMicroseconds / 1000) * iterations)
+        .toStringAsFixed(3);
+    return '$implType;$algoType;$dataSize;$iterations;$encMs;$decMs;$sumMs;$sumIterMs\n';
   }
 }
