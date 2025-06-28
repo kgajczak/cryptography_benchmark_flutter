@@ -160,15 +160,24 @@ class BenchmarkResult {
         '\nAverage mem: ${(averageMemory / 1048576).toStringAsFixed(3)}MB';
   }
 
-  String toExportString() {
-    final encMs = (avgEncryptTime.inMicroseconds / 1000).toStringAsFixed(3);
-    final decMs = (avgDecryptTime.inMicroseconds / 1000).toStringAsFixed(3);
-    final sumMs = (sumEncryptTime.inMicroseconds / 1000 +
-            sumDecryptTime.inMicroseconds / 1000)
-        .toStringAsFixed(3);
-    final sumIterMs = ((sumEncryptTime.inMicroseconds / 1000) * iterations)
-        .toStringAsFixed(3);
+  /// Formats the result as a CSV row for easy table import.
+  /// Note: CPU metrics must be added manually from profiler data.
+  String toCsvRow() {
+    // Wall Times in ms
+    final wallEncryptMs =
+        (avgEncryptTime.inMicroseconds / 1000).toStringAsFixed(3);
+    final wallDecryptMs =
+        (avgDecryptTime.inMicroseconds / 1000).toStringAsFixed(3);
+    final wallSumMs =
+        ((avgEncryptTime.inMicroseconds + avgDecryptTime.inMicroseconds) / 1000)
+            .toStringAsFixed(3);
 
-    return '$implType;$algoType;$dataSize;$iterations;$encMs;$decMs;$sumMs;$sumIterMs;$initialMemory;$peakMemory;$finalMemory\n';
+    // RAM usages in MB
+    final ramAvgMb = (averageMemory / (1024 * 1024)).toStringAsFixed(3);
+    final ramPeakMb = (peakMemory / (1024 * 1024)).toStringAsFixed(3);
+
+    // Returns a semicolon-separated string.
+    // Leaves placeholders for CPU data to be filled in from profiler.
+    return "$implType;$algoType;$dataSize;$iterations;$wallEncryptMs;$wallDecryptMs;$wallSumMs;[CPU_TIME_HERE];[CPU_PEAK_HERE];$ramAvgMb;$ramPeakMb\n";
   }
 }

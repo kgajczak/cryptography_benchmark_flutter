@@ -24,7 +24,7 @@ class CryptoBenchmarkApp extends StatelessWidget {
     return MaterialApp(
       title: 'Cryptographic Benchmark',
       theme: ThemeData(
-          primarySwatch: Colors.teal, // You can choose a different color
+          primarySwatch: Colors.teal,
           useMaterial3: true,
           inputDecorationTheme: const InputDecorationTheme(
             border: OutlineInputBorder(),
@@ -67,13 +67,13 @@ class _BenchmarkPageState extends State<BenchmarkPage> {
 
   // List to store the history of results
   final List<BenchmarkResult> _resultsHistory = [];
-  final int _maxHistoryLength = 10; // Maximum number of stored results
+  final int _maxHistoryLength = 300; // Increased history length for full test
 
   bool _isLoading = false; // Is the benchmark currently running?
 
-  // Function to run the benchmark
-  Future<void> _runBenchmark() async {
-    // Validate and parse user input data
+  // Function to run a single benchmark based on dropdowns/text fields
+  Future<void> _runSingleBenchmark() async {
+    // Validate and parse user input
     final int? dataSize = int.tryParse(_dataSizeController.text);
     final int? iterations = int.tryParse(_iterationsController.text);
 
@@ -92,11 +92,9 @@ class _BenchmarkPageState extends State<BenchmarkPage> {
       );
       // Update UI with the error
       setState(() {
-        _resultsHistory.insert(
-            0, errorResult); // Add error to the beginning of the history
+        _resultsHistory.insert(0, errorResult);
         if (_resultsHistory.length > _maxHistoryLength) {
-          _resultsHistory
-              .removeLast(); // Remove the oldest result if history is full
+          _resultsHistory.removeLast();
         }
       });
       return;
@@ -131,18 +129,18 @@ class _BenchmarkPageState extends State<BenchmarkPage> {
     // Check if the widget is still mounted (important for asynchronous operations)
     if (mounted) {
       setState(() {
-        _resultsHistory.insert(
-            0, result); // Add new result to the beginning of the history
+        _resultsHistory.insert(0, result);
         if (_resultsHistory.length > _maxHistoryLength) {
-          _resultsHistory.removeLast(); // Maintain maximum history length
+          _resultsHistory.removeLast();
         }
         _isLoading = false; // End loading state
       });
     }
   }
 
-  Future<void> _runFullBenchmark() async {
-    // Walidacja i parsowanie danych wejściowych od użytkownika
+  // A simpler suite that runs all 6 implementation/algorithm combinations for a single data size.
+  Future<void> _runSimpleSuite() async {
+    // Validate and parse user input
     final int? dataSize = int.tryParse(_dataSizeController.text);
     final int? iterations = int.tryParse(_iterationsController.text);
 
@@ -156,10 +154,10 @@ class _BenchmarkPageState extends State<BenchmarkPage> {
       return;
     }
 
-    // Pokaż dialog blokujący UI
+    // Show a UI-blocking dialog
     showDialog(
       context: context,
-      barrierDismissible: false, // Użytkownik nie może zamknąć dialogu
+      barrierDismissible: false, // User cannot close the dialog
       builder: (BuildContext context) {
         return const Dialog(
           child: Padding(
@@ -167,7 +165,7 @@ class _BenchmarkPageState extends State<BenchmarkPage> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text("Trwa pełny test..."),
+                Text("Running simple suite..."),
               ],
             ),
           ),
@@ -175,7 +173,7 @@ class _BenchmarkPageState extends State<BenchmarkPage> {
       },
     );
 
-    // Lista wszystkich kombinacji do przetestowania
+    // List of all combinations to test
     const List<Map<String, dynamic>> testSuite = [
       {
         'impl': ImplementationType.dart,
@@ -203,36 +201,186 @@ class _BenchmarkPageState extends State<BenchmarkPage> {
       },
     ];
 
+    // Generate one set of random data for this suite
     final testData = _generateRandomData(dataSize);
 
-    // Iteruj przez wszystkie testy
-    for (final testCase in testSuite) {
-      // Upewnij się, że UI jest nadal zamontowane
-      if (!mounted) break;
+    setState(() {
+      _isLoading = true;
+    });
 
-      final result = await _benchmarkService.runBenchmark(
-        implType: testCase['impl'],
-        algoType: testCase['algo'],
-        dataSize: dataSize,
-        iterations: iterations,
-        testData: testData,
-      );
+    try {
+      // Iterate through all tests
+      for (final testCase in testSuite) {
+        // Make sure the widget is still mounted
+        if (!mounted) break;
 
-      // Dodaj wynik do historii
-      setState(() {
-        _resultsHistory.insert(0, result);
-        if (_resultsHistory.length > _maxHistoryLength) {
-          _resultsHistory.removeLast();
-        }
-      });
+        final result = await _benchmarkService.runBenchmark(
+          implType: testCase['impl'],
+          algoType: testCase['algo'],
+          dataSize: dataSize,
+          iterations: iterations,
+          testData: testData,
+        );
 
-      // Odstęp 1 sekundy między testami
-      await Future.delayed(const Duration(seconds: 1));
+        // Add the result to history
+        setState(() {
+          _resultsHistory.insert(0, result);
+          if (_resultsHistory.length > _maxHistoryLength) {
+            _resultsHistory.removeLast();
+          }
+        });
+
+        // 1-second delay between tests
+        await Future.delayed(const Duration(seconds: 1));
+      }
+    } finally {
+      // Close the dialog after all tests are finished
+      if (mounted) {
+        Navigator.of(context).pop();
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
+  }
 
-    // Zamknij dialog po zakończeniu wszystkich testów
-    if (mounted) {
-      Navigator.of(context).pop();
+  // --- NEW FUNCTION TO RUN THE FULL PLANNED BENCHMARK ---
+  Future<void> _runFullPlannedTest() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    // --- Research plan definition ---
+    const List<ImplementationType> implementations = [
+      ImplementationType.ffi,
+      ImplementationType.platformChannel,
+      ImplementationType.dart,
+    ];
+    const List<AlgorithmType> algorithms = [
+      AlgorithmType.aesGcm,
+      AlgorithmType.chaChaPoly,
+    ];
+    const List<int> dataSizes = [
+      16384, // 16 KB
+      65536, // 64 KB
+      262144, // 256 KB
+      1048576, // 1 MB
+      4194304, // 4 MB
+    ];
+    const int repetitions = 5;
+    final int iterationsPerRun =
+        int.tryParse(_iterationsController.text) ?? 100;
+
+    final int totalTests = implementations.length *
+        algorithms.length *
+        dataSizes.length *
+        repetitions;
+    int currentTest = 0;
+    String progressMessage = "Preparing...";
+
+    // --- Progress Dialog ---
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        // StatefulBuilder allows updating the dialog content
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            // This function is passed to the loop to update the dialog's text
+            void updateDialog() {
+              if (mounted) {
+                setDialogState(() {});
+              }
+            }
+
+            // Initial call to render the dialog
+            updateDialog();
+
+            return Dialog(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Running Planned Test Suite',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Test ${currentTest + 1} of $totalTests',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      progressMessage,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    try {
+      // Loop order changed for data generation efficiency
+      for (int i = 0; i < repetitions; i++) {
+        for (final size in dataSizes) {
+          // For a given data size, generate the test data once per repetition
+          final testData = _generateRandomData(size);
+
+          for (final impl in implementations) {
+            for (final algo in algorithms) {
+              if (!mounted) return; // Always check if the widget is mounted
+
+              progressMessage =
+                  "Run ${i + 1}/$repetitions, Size: ${size}B\nTesting ${impl.name}, ${algo.name}";
+
+              // Force dialog update
+              setState(() {});
+
+              final result = await _benchmarkService.runBenchmark(
+                implType: impl,
+                algoType: algo,
+                dataSize: size,
+                iterations: iterationsPerRun,
+                testData: testData,
+              );
+
+              if (mounted) {
+                setState(() {
+                  _resultsHistory.insert(0, result);
+                  if (_resultsHistory.length > _maxHistoryLength) {
+                    _resultsHistory.removeLast();
+                  }
+                  currentTest++;
+                });
+              }
+
+              // A short break to let the device "breathe" and cool down
+              await Future.delayed(const Duration(seconds: 1));
+            }
+          }
+        }
+      }
+    } finally {
+      // --- Finalization and cleanup ---
+      if (mounted) {
+        Navigator.of(context).pop(); // Close the progress dialog
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Full planned test finished!"),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
@@ -253,8 +401,6 @@ class _BenchmarkPageState extends State<BenchmarkPage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        // We use ListView so that all content is scrollable,
-        // especially when the results history becomes long.
         child: ListView(
           children: [
             // --- Benchmark parameters selection section ---
@@ -270,8 +416,7 @@ class _BenchmarkPageState extends State<BenchmarkPage> {
               items: ImplementationType.values.map((type) {
                 return DropdownMenuItem(
                   value: type,
-                  child: Text(
-                      type.name), // Displays enum name (e.g., "dart", "ffi")
+                  child: Text(type.name),
                 );
               }).toList(),
               onChanged: _isLoading
@@ -295,7 +440,7 @@ class _BenchmarkPageState extends State<BenchmarkPage> {
               items: AlgorithmType.values.map((type) {
                 return DropdownMenuItem(
                   value: type,
-                  child: Text(type.name), // Displays enum name (e.g., "aesGcm")
+                  child: Text(type.name),
                 );
               }).toList(),
               onChanged: _isLoading
@@ -319,10 +464,8 @@ class _BenchmarkPageState extends State<BenchmarkPage> {
                 hintText: 'e.g., 1024, 16384, 1048576',
               ),
               keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly
-              ], // Only digits
-              enabled: !_isLoading, // Disable during loading
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              enabled: !_isLoading,
             ),
             const SizedBox(height: 16),
 
@@ -331,39 +474,50 @@ class _BenchmarkPageState extends State<BenchmarkPage> {
               controller: _iterationsController,
               decoration: const InputDecoration(
                 labelText: 'Number of Iterations',
-                hintText: 'e.g., 100, 1000, 10000',
+                hintText: 'e.g., 100, 1000',
               ),
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              enabled: !_isLoading, // Disable during loading
+              enabled: !_isLoading,
             ),
             const SizedBox(height: 24),
 
-            // Button to run the benchmark
+            // --- Action Buttons ---
             ElevatedButton(
-              // Disable button if benchmark is running
-              onPressed: _isLoading ? null : _runBenchmark,
+              onPressed: _isLoading ? null : _runSingleBenchmark,
               style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   textStyle: const TextStyle(fontSize: 16)),
-              child: const Text('Run Benchmark'),
+              child: const Text('Run Single Benchmark'),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: _isLoading ? null : _runFullBenchmark,
+              onPressed: _isLoading ? null : _runSimpleSuite,
               style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   textStyle: const TextStyle(fontSize: 16)),
-              child: const Text('Run Complex Benchmark'),
+              child: const Text('Run Simple Suite (6 tests)'),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              // Disable button if benchmark is running
+              onPressed: _isLoading ? null : _runFullPlannedTest,
+              style: ElevatedButton.styleFrom(
+                  // backgroundColor: Colors.deepPurple,
+                  // foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  textStyle: const TextStyle(
+                    fontSize: 16,
+                    // fontWeight: FontWeight.bold,
+                  )),
+              child: const Text('Run Full Planned Test'),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
               onPressed: _isLoading ? null : _showResultDialog,
               style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   textStyle: const TextStyle(fontSize: 16)),
-              child: const Text('Show results'),
+              child: const Text('Show Results as CSV'),
             ),
             const SizedBox(height: 24),
             const Divider(),
@@ -392,9 +546,8 @@ class _BenchmarkPageState extends State<BenchmarkPage> {
 
             // Results list
             ListView.builder(
-              shrinkWrap: true, // So ListView only takes up necessary space
-              physics:
-                  const NeverScrollableScrollPhysics(), // Disable internal scrolling, as the whole page is a ListView
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
               itemCount: _resultsHistory.length,
               itemBuilder: (context, index) {
                 final result = _resultsHistory[index];
@@ -409,7 +562,7 @@ class _BenchmarkPageState extends State<BenchmarkPage> {
                     child: Text(
                       result.toString(),
                       style: TextStyle(
-                        fontFamily: 'monospace', // Good font for technical data
+                        fontFamily: 'monospace',
                         color: result.success
                             ? Colors.black87
                             : Colors.red.shade900,
@@ -430,14 +583,14 @@ class _BenchmarkPageState extends State<BenchmarkPage> {
     showDialog(
       context: context,
       builder: (context) {
-        final resultHistoryInTxt = _getResultsHistory();
-        log(resultHistoryInTxt);
+        final resultHistoryInTxt = _getResultsHistoryAsCsv();
+        log(resultHistoryInTxt); // Log for easy copy-paste from debug console
         return Dialog.fullscreen(
           backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
           child: SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
-              child: SelectableText((resultHistoryInTxt)),
+              child: SelectableText(resultHistoryInTxt),
             ),
           ),
         );
@@ -445,15 +598,24 @@ class _BenchmarkPageState extends State<BenchmarkPage> {
     );
   }
 
-  String _getResultsHistory() {
-    String resultHistoryInTxt = '';
-    for (var element in _resultsHistory) {
-      resultHistoryInTxt += element.toExportString();
+  String _getResultsHistoryAsCsv() {
+    final buffer = StringBuffer();
+    // Add header row for the CSV
+    buffer.writeln(
+        "Platform,Run,Implementation,Algorithm,DataSize_B,Iterations,WallTime_Encrypt_ms,WallTime_Decrypt_ms,WallTime_Sum_ms,CPUTime_Sum_ms,CPUUsage_Peak_Percent,RAM_Avg_MB,RAM_Peak_MB");
+
+    // Reverse the list to show oldest results first in the export
+    final reversedHistory = _resultsHistory.reversed;
+    for (var element in reversedHistory) {
+      // Assuming a `toCsvRow` method exists on BenchmarkResult.
+      // This method should be implemented to format the data correctly.
+      // Placeholder for CPU data which must be filled manually.
+      buffer.writeln(element.toCsvRow().replaceAll(';', ','));
     }
-    return resultHistoryInTxt;
+    return buffer.toString();
   }
 
-  // Wygeneruj losowe dane do testów
+  // Generate random data for tests
   Uint8List _generateRandomData(int sizeInBytes) {
     final random = Random.secure();
     return Uint8List.fromList(
