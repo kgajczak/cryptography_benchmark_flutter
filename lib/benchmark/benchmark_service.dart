@@ -1,5 +1,6 @@
 // ignore_for_file: avoid_print
 
+import 'dart:developer';
 import 'dart:io';
 import 'dart:math';
 
@@ -172,6 +173,8 @@ class BenchmarkService {
 
     print(
         "Starting benchmark: $implType, $algoType, size: $dataSize B, iterations: $iterations. Initial RSS: ${(initialRss / (1024 * 1024)).toStringAsFixed(2)} MB");
+    final debugLabel =
+        "$implType, $algoType, size: $dataSize B, iterations: $iterations";
 
     try {
       // The main benchmark loop.
@@ -186,35 +189,53 @@ class BenchmarkService {
         switch (implType) {
           case ImplementationType.dart:
             // Use `compute` to run the Dart crypto logic in a separate isolate.
-            encryptedData = await compute(_runDartCrypto, {
-              'isEncrypt': true,
-              'algoType': algoType,
-              'data': plainText,
-              'key': algoType == AlgorithmType.aesGcm
-                  ? _aesKeyDartImpl
-                  : _chaKeyDartImpl,
-            });
+            final task = TimelineTask();
+            task.start(debugLabel);
+            try {
+              encryptedData = await compute(_runDartCrypto, {
+                'isEncrypt': true,
+                'algoType': algoType,
+                'data': plainText,
+                'key': algoType == AlgorithmType.aesGcm
+                    ? _aesKeyDartImpl
+                    : _chaKeyDartImpl,
+              });
+            } finally {
+              task.finish();
+            }
             break;
           case ImplementationType.platformChannel:
             // Platform Channel calls are made directly. They are already async and
             // handled by the Flutter engine to run on the appropriate native thread.
-            encryptedData = (algoType == AlgorithmType.aesGcm)
-                ? await _pcService.encryptAesGcm(
-                    plainText, _aesKeyRawBytes, nonce)
-                : await _pcService.encryptChaCha(
-                    plainText, _chaKeyRawBytes, nonce);
+            final task = TimelineTask();
+            task.start(debugLabel);
+            try {
+              encryptedData = (algoType == AlgorithmType.aesGcm)
+                  ? await _pcService.encryptAesGcm(
+                      plainText, _aesKeyRawBytes, nonce)
+                  : await _pcService.encryptChaCha(
+                      plainText, _chaKeyRawBytes, nonce);
+            } finally {
+              task.finish();
+            }
             break;
           case ImplementationType.ffi:
             // Use `compute` to run the FFI crypto logic in a separate isolate.
-            encryptedData = await compute(_runFfiCrypto, {
-              'isEncrypt': true,
-              'algoType': algoType,
-              'data': plainText,
-              'key': algoType == AlgorithmType.aesGcm
-                  ? _aesKeyRawBytes
-                  : _chaKeyRawBytes,
-              'nonce': nonce,
-            });
+            final task = TimelineTask();
+            task.start(debugLabel);
+            try {
+              encryptedData = await compute(_runFfiCrypto, {
+                'isEncrypt': true,
+                'algoType': algoType,
+                'data': plainText,
+                'key': algoType == AlgorithmType.aesGcm
+                    ? _aesKeyRawBytes
+                    : _chaKeyRawBytes,
+                'nonce': nonce,
+              });
+            } finally {
+              task.finish();
+            }
             break;
         }
         stopwatchEncrypt.stop();
@@ -233,22 +254,34 @@ class BenchmarkService {
         switch (implType) {
           case ImplementationType.dart:
             // Use `compute` for decryption in a separate isolate.
-            decryptedData = await compute(_runDartCrypto, {
-              'isEncrypt': false,
-              'algoType': algoType,
-              'data': encryptedData,
-              'key': algoType == AlgorithmType.aesGcm
-                  ? _aesKeyDartImpl
-                  : _chaKeyDartImpl,
-            });
+            final task = TimelineTask();
+            task.start(debugLabel);
+            try {
+              decryptedData = await compute(_runDartCrypto, {
+                'isEncrypt': false,
+                'algoType': algoType,
+                'data': encryptedData,
+                'key': algoType == AlgorithmType.aesGcm
+                    ? _aesKeyDartImpl
+                    : _chaKeyDartImpl,
+              });
+            } finally {
+              task.finish();
+            }
             break;
           case ImplementationType.platformChannel:
             // Direct call for Platform Channel decryption.
-            decryptedData = (algoType == AlgorithmType.aesGcm)
-                ? await _pcService.decryptAesGcm(
-                    encryptedData, _aesKeyRawBytes, nonce)
-                : await _pcService.decryptChaCha(
-                    encryptedData, _chaKeyRawBytes, nonce);
+            final task = TimelineTask();
+            task.start(debugLabel);
+            try {
+              decryptedData = (algoType == AlgorithmType.aesGcm)
+                  ? await _pcService.decryptAesGcm(
+                      encryptedData, _aesKeyRawBytes, nonce)
+                  : await _pcService.decryptChaCha(
+                      encryptedData, _chaKeyRawBytes, nonce);
+            } finally {
+              task.finish();
+            }
             break;
           case ImplementationType.ffi:
             // Use `compute` for FFI decryption in a separate isolate.

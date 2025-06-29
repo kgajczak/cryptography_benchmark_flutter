@@ -267,61 +267,28 @@ class _BenchmarkPageState extends State<BenchmarkPage> {
       1048576, // 1 MB
       4194304, // 4 MB
     ];
-    const int repetitions = 5;
+    const int repetitions = 1;
     final int iterationsPerRun =
         int.tryParse(_iterationsController.text) ?? 100;
-
-    final int totalTests = implementations.length *
-        algorithms.length *
-        dataSizes.length *
-        repetitions;
-    int currentTest = 0;
-    String progressMessage = "Preparing...";
 
     // --- Progress Dialog ---
     showDialog(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: true,
       builder: (BuildContext context) {
-        // StatefulBuilder allows updating the dialog content
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            // This function is passed to the loop to update the dialog's text
-            void updateDialog() {
-              if (mounted) {
-                setDialogState(() {});
-              }
-            }
-
-            // Initial call to render the dialog
-            updateDialog();
-
-            return Dialog(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Running Planned Test Suite',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Test ${currentTest + 1} of $totalTests',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      progressMessage,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
+        return Dialog(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Running Planned Test Suite',
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
-              ),
-            );
-          },
+              ],
+            ),
+          ),
         );
       },
     );
@@ -337,12 +304,6 @@ class _BenchmarkPageState extends State<BenchmarkPage> {
             for (final algo in algorithms) {
               if (!mounted) return; // Always check if the widget is mounted
 
-              progressMessage =
-                  "Run ${i + 1}/$repetitions, Size: ${size}B\nTesting ${impl.name}, ${algo.name}";
-
-              // Force dialog update
-              setState(() {});
-
               final result = await _benchmarkService.runBenchmark(
                 implType: impl,
                 algoType: algo,
@@ -357,7 +318,6 @@ class _BenchmarkPageState extends State<BenchmarkPage> {
                   if (_resultsHistory.length > _maxHistoryLength) {
                     _resultsHistory.removeLast();
                   }
-                  currentTest++;
                 });
               }
 
