@@ -131,6 +131,14 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         // You can define other build types here (e.g., a custom 'staging' build type).
+        profile {
+            signingConfig signingConfigs.debug
+            debuggable false
+            profileable true
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
     }
 }
 
