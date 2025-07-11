@@ -71,6 +71,16 @@ class BenchmarkResult {
   /// The average memory usage (RSS) in bytes per iteration.
   final int averageMemory;
 
+  /// [ENGLISH] The total CPU time consumed by the process during the benchmark, in 'jiffies'.
+  /// A value of -1 indicates that the measurement was not available.
+  final int cpuTimeUsed;
+
+  /// [ENGLISH] The standard deviation of encryption times, indicating jitter.
+  final Duration stdevEncryptTime;
+
+  /// [ENGLISH] The standard deviation of decryption times, indicating jitter.
+  final Duration stdevDecryptTime;
+
   /// A calculated property for the change in memory usage.
   int get memoryDelta => peakMemory - initialMemory;
 
@@ -97,6 +107,10 @@ class BenchmarkResult {
     required this.peakMemory,
     required this.finalMemory,
     required this.averageMemory,
+    // [ENGLISH] Added new required fields to the constructor.
+    required this.cpuTimeUsed,
+    required this.stdevEncryptTime,
+    required this.stdevDecryptTime,
     this.success = true,
     this.errorMessage,
   });
@@ -124,6 +138,10 @@ class BenchmarkResult {
       peakMemory: 0,
       finalMemory: 0,
       averageMemory: 0,
+      // [ENGLISH] Set default error values for new fields.
+      cpuTimeUsed: -1,
+      stdevEncryptTime: Duration.zero,
+      stdevDecryptTime: Duration.zero,
       success: false, // Mark as failure
       errorMessage: message,
     );
@@ -145,14 +163,23 @@ class BenchmarkResult {
     final sumMs = (sumEncryptTime.inMicroseconds / 1000 +
             sumDecryptTime.inMicroseconds / 1000)
         .toStringAsFixed(3);
+    // [ENGLISH] Format standard deviation values.
+    final encStdevMs =
+        (stdevEncryptTime.inMicroseconds / 1000).toStringAsFixed(3);
+    final decStdevMs =
+        (stdevDecryptTime.inMicroseconds / 1000).toStringAsFixed(3);
+
+    // [ENGLISH] Format CPU time. Assuming 100 jiffies per second, so 1 jiffy = 10ms.
+    final cpuTimeMs = (cpuTimeUsed * 10).toStringAsFixed(2);
 
     return '${implType.name},'
         '\n${algoType.name},'
         '\ndata: ${dataSize}B,'
         '\niter: $iterations'
-        '\nEncrypt: ${encMs}ms,'
-        '\nDecrypt: ${decMs}ms,'
+        '\nEncrypt: ${encMs}ms (±${encStdevMs}ms),' // [ENGLISH] Added stdev to output
+        '\nDecrypt: ${decMs}ms (±${decStdevMs}ms),' // [ENGLISH] Added stdev to output
         '\nSum: ${sumMs}ms'
+        '\nCPU Time: ${cpuTimeUsed > -1 ? "${cpuTimeMs}ms" : "N/A"},' // [ENGLISH] Added CPU time to output
         '\nInit mem: ${(initialMemory / 1048576).toStringAsFixed(3)}MB'
         '\nPeak mem: ${(peakMemory / 1048576).toStringAsFixed(3)}MB'
         '\nFinal mem: ${(finalMemory / 1048576).toStringAsFixed(3)}MB'
@@ -169,15 +196,22 @@ class BenchmarkResult {
     final wallDecryptMs =
         (avgDecryptTime.inMicroseconds / 1000).toStringAsFixed(3);
     final wallSumMs =
-        ((avgEncryptTime.inMicroseconds + avgDecryptTime.inMicroseconds) / 1000)
+        ((sumEncryptTime.inMicroseconds + sumDecryptTime.inMicroseconds) / 1000)
             .toStringAsFixed(3);
+
+    // [ENGLISH] Format standard deviation and CPU time for CSV.
+    final encStdevMs =
+        (stdevEncryptTime.inMicroseconds / 1000).toStringAsFixed(3);
+    final decStdevMs =
+        (stdevDecryptTime.inMicroseconds / 1000).toStringAsFixed(3);
+    final cpuTimeMs = cpuTimeUsed > -1 ? (cpuTimeUsed * 10).toString() : "N/A";
 
     // RAM usages in MB
     final ramAvgMb = (averageMemory / (1024 * 1024)).toStringAsFixed(3);
     final ramPeakMb = (peakMemory / (1024 * 1024)).toStringAsFixed(3);
 
     // Returns a semicolon-separated string.
-    // Leaves placeholders for CPU data to be filled in from profiler.
-    return "$implType;$algoType;$dataSize;$iterations;$wallEncryptMs;$wallDecryptMs;$wallSumMs;[CPU_TIME_HERE];[CPU_PEAK_HERE];$ramAvgMb;$ramPeakMb\n";
+    // [ENGLISH] Updated the CSV format to include the new metrics.
+    return "$implType;$algoType;$dataSize;$iterations;$wallEncryptMs;$encStdevMs;$wallDecryptMs;$decStdevMs;$wallSumMs;$cpuTimeMs;$ramAvgMb;$ramPeakMb\n";
   }
 }

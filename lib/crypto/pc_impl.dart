@@ -17,6 +17,19 @@ class PlatformChannelCryptoService {
   // cannot be directly passed through the platform channel.
   // Nonce will also be generated on the Dart side and passed.
 
+  // --- NEW METHOD ---
+  // [ENGLISH] A new method to invoke the native 'getCpuTime' implementation.
+  // It returns the total CPU time in "jiffies" or -1 on failure.
+  Future<int> getCpuTime() async {
+    try {
+      final int? cpuTime = await platform.invokeMethod<int>('getCpuTime');
+      return cpuTime ?? -1;
+    } on PlatformException catch (e) {
+      print("PlatformChannel Error (getCpuTime): ${e.message}");
+      return -1;
+    }
+  }
+
   // --- AES-GCM ---
 
   /// Encrypts data using AES-GCM via Platform Channel.

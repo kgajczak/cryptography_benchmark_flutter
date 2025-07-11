@@ -89,7 +89,8 @@ android {
         applicationId "com.example.cryptography_benchmark_flutter"
         // Minimum API level required to run the application.
         // 'flutter.minSdkVersion' is provided by the Flutter plugin.
-        minSdk flutter.minSdkVersion.toInteger()
+//        minSdk flutter.minSdkVersion.toInteger()
+        minSdk 21
         // Target API level for the application.
         // 'flutter.targetSdkVersion' is provided by the Flutter plugin.
         targetSdk flutter.targetSdkVersion.toInteger()

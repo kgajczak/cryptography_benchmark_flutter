@@ -165,15 +165,17 @@ class BenchmarkService {
     int peakRss = initialRss;
     int sumRss = 0;
 
-    // Generate the data to be encrypted, or use the provided test data.
+    // --- NEW: CPU Time Measurement ---
+    // [ENGLISH] Get the starting CPU time before the benchmark loop.
+    // This requires a platform channel call, so it's asynchronous.
+    final int startCpuTime = await _pcService.getCpuTime();
+
     final plainText = testData ?? _generateRandomData(dataSize);
     final List<Duration> encryptDurations = [];
     final List<Duration> decryptDurations = [];
 
     print(
-        "Starting benchmark: $implType, $algoType, size: $dataSize B, iterations: $iterations. Initial RSS: ${(initialRss / (1024 * 1024)).toStringAsFixed(2)} MB");
-    // final debugLabel =
-    //     "$implType, $algoType, size: $dataSize B, iterations: $iterations";
+        "Starting benchmark $implType, $algoType, size: $dataSize B, iterations: $iterations.");
 
     try {
       // The main benchmark loop.
@@ -297,6 +299,13 @@ class BenchmarkService {
         }
       }
 
+      // --- NEW: Final CPU Time Measurement ---
+      // [ENGLISH] Get the ending CPU time and calculate the delta.
+      final int endCpuTime = await _pcService.getCpuTime();
+      final int cpuTimeDelta = (startCpuTime != -1 && endCpuTime != -1)
+          ? endCpuTime - startCpuTime
+          : -1; // -1 indicates an error or unavailability.
+
       // Measure memory after the test.
       await Future.delayed(const Duration(milliseconds: 50));
       final finalRss = ProcessInfo.currentRss;
@@ -307,7 +316,16 @@ class BenchmarkService {
       final sumEncrypt = _calculateSum(encryptDurations);
       final sumDecrypt = _calculateSum(decryptDurations);
 
+      // --- NEW: Standard Deviation Calculation ---
+      // [ENGLISH] Calculate the standard deviation for encryption and decryption times.
+      final stdevEncrypt =
+          _calculateStandardDeviation(encryptDurations, avgEncrypt);
+      final stdevDecrypt =
+          _calculateStandardDeviation(decryptDurations, avgDecrypt);
+
       print("Benchmark finished successfully for: $implType, $algoType.");
+      print(
+          "CPU time delta: $cpuTimeDelta jiffies"); // [ENGLISH] Log the raw CPU time delta.
 
       // Return a successful result object.
       return BenchmarkResult(
@@ -323,6 +341,10 @@ class BenchmarkService {
         peakMemory: peakRss,
         finalMemory: finalRss,
         averageMemory: sumRss ~/ iterations,
+        // [ENGLISH] Pass the new metrics to the BenchmarkResult constructor.
+        cpuTimeUsed: cpuTimeDelta,
+        stdevEncryptTime: stdevEncrypt,
+        stdevDecryptTime: stdevDecrypt,
       );
     } catch (e, s) {
       // Catch any exception during the benchmark process, log it, and return an error result.
@@ -356,12 +378,23 @@ class BenchmarkService {
     return Duration(microseconds: totalMicroseconds);
   }
 
-  /// A constant-time comparison of two byte lists to prevent timing attacks.
-  /// Although for this benchmark context it's not strictly necessary, it's a good practice.
-  ///
-  /// Note: The implementation here is a simple element-wise check, not truly constant-time.
-  /// A true constant-time comparison would perform checks on all bytes regardless of where
-  /// a mismatch is found to ensure the execution time is always the same.
+  // --- NEW HELPER FUNCTION ---
+  /// [ENGLISH] Calculates the standard deviation of a list of Durations.
+  /// This helps measure the jitter or variability of the performance.
+  /// [durations] - The list of time measurements.
+  /// [mean] - The pre-calculated average of the durations.
+  Duration _calculateStandardDeviation(
+      List<Duration> durations, Duration mean) {
+    if (durations.length < 2) return Duration.zero;
+    // [ENGLISH] 1. Calculate the variance.
+    final variance = durations
+            .map((d) => pow(d.inMicroseconds - mean.inMicroseconds, 2))
+            .reduce((a, b) => a + b) /
+        (durations.length - 1); // Using sample standard deviation (n-1).
+    // [ENGLISH] 2. Standard deviation is the square root of the variance.
+    return Duration(microseconds: sqrt(variance).round());
+  }
+
   bool _compareLists(Uint8List a, Uint8List b) {
     if (a.length != b.length) return false;
     for (int i = 0; i < a.length; i++) {

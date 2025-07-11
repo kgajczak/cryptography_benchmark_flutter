@@ -561,8 +561,9 @@ class _BenchmarkPageState extends State<BenchmarkPage> {
   String _getResultsHistoryAsCsv() {
     final buffer = StringBuffer();
     // Add header row for the CSV
+    // [ENGLISH] Updated the CSV header to include the new columns.
     buffer.writeln(
-        "Platform,Run,Implementation,Algorithm,DataSize_B,Iterations,WallTime_Encrypt_ms,WallTime_Decrypt_ms,WallTime_Sum_ms,CPUTime_Sum_ms,CPUUsage_Peak_Percent,RAM_Avg_MB,RAM_Peak_MB");
+        "Implementation;Algorithm;DataSize_B;Iterations;WallTime_Encrypt_ms;Stdev_Encrypt_ms;WallTime_Decrypt_ms;Stdev_Decrypt_ms;WallTime_Sum_ms;CPUTime_ms;RAM_Avg_MB;RAM_Peak_MB");
 
     // Reverse the list to show oldest results first in the export
     final reversedHistory = _resultsHistory.reversed;
@@ -570,7 +571,7 @@ class _BenchmarkPageState extends State<BenchmarkPage> {
       // Assuming a `toCsvRow` method exists on BenchmarkResult.
       // This method should be implemented to format the data correctly.
       // Placeholder for CPU data which must be filled manually.
-      buffer.writeln(element.toCsvRow().replaceAll(';', ','));
+      buffer.write(element.toCsvRow());
     }
     return buffer.toString();
   }

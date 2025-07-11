@@ -12,6 +12,7 @@ import javax.crypto.spec.IvParameterSpec
 import org.spongycastle.jce.provider.BouncyCastleProvider // Using SpongyCastle, a repackage of BouncyCastle for Android
 import java.security.Security
 import android.util.Log
+import java.io.File // Added for file reading
 
 class MainActivity: FlutterActivity() {
     // Channel name for communication between Flutter and native Android code
@@ -39,6 +40,27 @@ class MainActivity: FlutterActivity() {
             }
         }
     }
+
+    // --- NEW FUNCTION ---
+    // [ENGLISH] A new private function to get the process's CPU time.
+    // It reads the /proc/self/stat file, which is a standard way on Linux-based
+    // systems (like Android) to get process statistics.
+    private fun getProcessCpuTime(): Long {
+        try {
+            // [ENGLISH] Read the statistics file for the current process.
+            val stats = File("/proc/self/stat").readText().split(" ")
+            // [ENGLISH] Extract user time (utime, field #14, index 13) and system time (stime, field #15, index 14).
+            val utime = stats[13].toLong()
+            val stime = stats[14].toLong()
+            // [ENGLISH] Return the sum. The value is in "jiffies" (system clock ticks),
+            // which is precise enough for calculating deltas.
+            return utime + stime
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to read CPU time from /proc/self/stat", e)
+            return -1L // [ENGLISH] Return -1 on error.
+        }
+    }
+
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine) // Standard call to the superclass
@@ -78,6 +100,16 @@ class MainActivity: FlutterActivity() {
             // channelResult: Used to send a response (success or error) back to Flutter
                 call, channelResult ->
             when (call.method) { // Dispatch based on the method name called from Flutter
+                // --- NEW METHOD HANDLER ---
+                // [ENGLISH] Handle the new 'getCpuTime' method call from Flutter.
+                "getCpuTime" -> {
+                    val cpuTime = getProcessCpuTime()
+                    if (cpuTime != -1L) {
+                        channelResult.success(cpuTime)
+                    } else {
+                        channelResult.error("UNAVAILABLE", "Could not retrieve CPU time.", null)
+                    }
+                }
                 "encryptAesGcm" -> {
                     try {
                         // Cast arguments to the expected type (Map of String to ByteArray)
