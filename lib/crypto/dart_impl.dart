@@ -38,10 +38,9 @@ class DartCryptoService {
   /// [secretKey] - key used for encryption.
   /// Returns a [Uint8List] containing the combined: nonce (12B) + encrypted data + MAC tag (16B).
   Future<Uint8List> encryptAesGcm(
-      Uint8List plainText, SecretKey secretKey) async {
+      Uint8List plainText, SecretKey secretKey, Uint8List nonce) async {
     // Generate a new, unique nonce for this encryption operation.
     // The standard and recommended nonce length for AES-GCM is 12 bytes (96 bits).
-    final nonce = generateNonce(12);
 
     final secretBox = await aesGcm.encrypt(
       plainText,
@@ -100,9 +99,8 @@ class DartCryptoService {
   /// Encrypts data (plainText) using the ChaCha20-Poly1305 algorithm.
   /// Returns a [Uint8List] containing the combined: nonce (12B) + encrypted data + MAC tag (16B).
   Future<Uint8List> encryptChaCha(
-      Uint8List plainText, SecretKey secretKey) async {
+      Uint8List plainText, SecretKey secretKey, Uint8List nonce) async {
     // The standard and recommended nonce length for ChaCha20-Poly1305 is 12 bytes.
-    final nonce = generateNonce(12);
 
     final secretBox = await chacha.encrypt(
       plainText,

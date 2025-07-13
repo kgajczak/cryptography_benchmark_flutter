@@ -30,12 +30,13 @@ Future<Uint8List?> _runDartCrypto(Map<String, dynamic> args) async {
   final Uint8List data = args['data'];
   final SecretKey key =
       args['key']; // `SecretKey` is from the `cryptography` package.
+  final Uint8List nonce = args['nonce']; // Optional nonce for encryption.
 
   // Conditionally call the appropriate encryption or decryption method.
   if (isEncrypt) {
     return (algoType == AlgorithmType.aesGcm)
-        ? await service.encryptAesGcm(data, key)
-        : await service.encryptChaCha(data, key);
+        ? await service.encryptAesGcm(data, key, nonce)
+        : await service.encryptChaCha(data, key, nonce);
   } else {
     return (algoType == AlgorithmType.aesGcm)
         ? await service.decryptAesGcm(data, key)
@@ -197,6 +198,7 @@ class BenchmarkService {
               'key': algoType == AlgorithmType.aesGcm
                   ? _aesKeyDartImpl
                   : _chaKeyDartImpl,
+              'nonce': nonce,
             });
             break;
 
@@ -205,9 +207,15 @@ class BenchmarkService {
             // handled by the Flutter engine to run on the appropriate native thread.
             encryptedData = (algoType == AlgorithmType.aesGcm)
                 ? await _pcService.encryptAesGcm(
-                    plainText, _aesKeyRawBytes, nonce)
+                    plainText,
+                    _aesKeyRawBytes,
+                    nonce,
+                  )
                 : await _pcService.encryptChaCha(
-                    plainText, _chaKeyRawBytes, nonce);
+                    plainText,
+                    _chaKeyRawBytes,
+                    nonce,
+                  );
             break;
 
           case ImplementationType.ffi:
@@ -246,6 +254,7 @@ class BenchmarkService {
               'key': algoType == AlgorithmType.aesGcm
                   ? _aesKeyDartImpl
                   : _chaKeyDartImpl,
+              'nonce': nonce,
             });
             break;
 
@@ -253,9 +262,15 @@ class BenchmarkService {
             // Direct call for Platform Channel decryption.
             decryptedData = (algoType == AlgorithmType.aesGcm)
                 ? await _pcService.decryptAesGcm(
-                    encryptedData, _aesKeyRawBytes, nonce)
+                    encryptedData,
+                    _aesKeyRawBytes,
+                    nonce,
+                  )
                 : await _pcService.decryptChaCha(
-                    encryptedData, _chaKeyRawBytes, nonce);
+                    encryptedData,
+                    _chaKeyRawBytes,
+                    nonce,
+                  );
             break;
 
           case ImplementationType.ffi:
