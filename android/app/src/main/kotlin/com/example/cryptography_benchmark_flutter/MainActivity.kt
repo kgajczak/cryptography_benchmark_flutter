@@ -41,23 +41,22 @@ class MainActivity: FlutterActivity() {
         }
     }
 
-    // --- NEW FUNCTION ---
-    // [ENGLISH] A new private function to get the process's CPU time.
+    // A new private function to get the process's CPU time.
     // It reads the /proc/self/stat file, which is a standard way on Linux-based
     // systems (like Android) to get process statistics.
     private fun getProcessCpuTime(): Long {
         try {
-            // [ENGLISH] Read the statistics file for the current process.
+            // Read the statistics file for the current process.
             val stats = File("/proc/self/stat").readText().split(" ")
-            // [ENGLISH] Extract user time (utime, field #14, index 13) and system time (stime, field #15, index 14).
+            // Extract user time (utime, field #14, index 13) and system time (stime, field #15, index 14).
             val utime = stats[13].toLong()
             val stime = stats[14].toLong()
-            // [ENGLISH] Return the sum. The value is in "jiffies" (system clock ticks),
+            // Return the sum. The value is in "jiffies" (system clock ticks),
             // which is precise enough for calculating deltas.
             return utime + stime
         } catch (e: Exception) {
             Log.e(TAG, "Failed to read CPU time from /proc/self/stat", e)
-            return -1L // [ENGLISH] Return -1 on error.
+            return -1L // Return -1 on error.
         }
     }
 
@@ -65,7 +64,6 @@ class MainActivity: FlutterActivity() {
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine) // Standard call to the superclass
 
-        // --- Optional: Log available SpongyCastle/BouncyCastle algorithms for debugging/informational purposes ---
         try {
             val scProvider = Security.getProvider(BouncyCastleProvider.PROVIDER_NAME)
             if (scProvider != null) {
@@ -92,7 +90,6 @@ class MainActivity: FlutterActivity() {
         } catch (e: Exception) {
             Log.e("AlgoList", "Error listing SC/BC algorithms", e)
         }
-        // --- End of optional algorithm listing ---
 
         // Set up the MethodChannel to handle calls from Flutter
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler {
@@ -100,8 +97,7 @@ class MainActivity: FlutterActivity() {
             // channelResult: Used to send a response (success or error) back to Flutter
                 call, channelResult ->
             when (call.method) { // Dispatch based on the method name called from Flutter
-                // --- NEW METHOD HANDLER ---
-                // [ENGLISH] Handle the new 'getCpuTime' method call from Flutter.
+                // Handle the new 'getCpuTime' method call from Flutter.
                 "getCpuTime" -> {
                     val cpuTime = getProcessCpuTime()
                     if (cpuTime != -1L) {
@@ -206,7 +202,7 @@ class MainActivity: FlutterActivity() {
                         // Get Cipher instance for "CHACHA7539" (ChaCha20-Poly1305 AEAD algorithm as per RFC7539)
                         // Explicitly request it from the SpongyCastle/BouncyCastle provider.
                         val cipher = Cipher.getInstance("CHACHA7539", BouncyCastleProvider.PROVIDER_NAME)
-//                        val cipher = Cipher.getInstance("CHACHA")
+                        //val cipher = Cipher.getInstance("CHACHA")
                         // Initialize cipher for encryption mode
                         cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivParameterSpec)
                         // Perform encryption
@@ -245,7 +241,6 @@ class MainActivity: FlutterActivity() {
                         val secretKeySpec: SecretKey = SecretKeySpec(key, "ChaCha20")
                         val ivParameterSpec = IvParameterSpec(nonce)
                         val cipher = Cipher.getInstance("CHACHA7539", BouncyCastleProvider.PROVIDER_NAME)
-//                        val cipher = Cipher.getInstance("CHACHA")
                         // Initialize cipher for decryption mode
                         cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivParameterSpec)
                         // Perform decryption

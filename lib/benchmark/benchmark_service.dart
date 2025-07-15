@@ -166,8 +166,7 @@ class BenchmarkService {
     int peakRss = initialRss;
     int sumRss = 0;
 
-    // --- NEW: CPU Time Measurement ---
-    // [ENGLISH] Get the starting CPU time before the benchmark loop.
+    //  Get the starting CPU time before the benchmark loop.
     // This requires a platform channel call, so it's asynchronous.
     final int startCpuTime = await _pcService.getCpuTime();
 
@@ -314,8 +313,7 @@ class BenchmarkService {
         }
       }
 
-      // --- NEW: Final CPU Time Measurement ---
-      // [ENGLISH] Get the ending CPU time and calculate the delta.
+      //  Get the ending CPU time and calculate the delta.
       final int endCpuTime = await _pcService.getCpuTime();
       final int cpuTimeDelta = (startCpuTime != -1 && endCpuTime != -1)
           ? endCpuTime - startCpuTime
@@ -331,8 +329,7 @@ class BenchmarkService {
       final sumEncrypt = _calculateSum(encryptDurations);
       final sumDecrypt = _calculateSum(decryptDurations);
 
-      // --- NEW: Standard Deviation Calculation ---
-      // [ENGLISH] Calculate the standard deviation for encryption and decryption times.
+      //  Calculate the standard deviation for encryption and decryption times.
       final stdevEncrypt =
           _calculateStandardDeviation(encryptDurations, avgEncrypt);
       final stdevDecrypt =
@@ -340,7 +337,7 @@ class BenchmarkService {
 
       print("Benchmark finished successfully for: $implType, $algoType.");
       print(
-          "CPU time delta: $cpuTimeDelta jiffies"); // [ENGLISH] Log the raw CPU time delta.
+          "CPU time delta: $cpuTimeDelta jiffies"); //  Log the raw CPU time delta.
 
       // Return a successful result object.
       return BenchmarkResult(
@@ -356,7 +353,7 @@ class BenchmarkService {
         peakMemory: peakRss,
         finalMemory: finalRss,
         averageMemory: sumRss ~/ iterations,
-        // [ENGLISH] Pass the new metrics to the BenchmarkResult constructor.
+        //  Pass the new metrics to the BenchmarkResult constructor.
         cpuTimeUsed: cpuTimeDelta,
         stdevEncryptTime: stdevEncrypt,
         stdevDecryptTime: stdevDecrypt,
@@ -393,20 +390,19 @@ class BenchmarkService {
     return Duration(microseconds: totalMicroseconds);
   }
 
-  // --- NEW HELPER FUNCTION ---
-  /// [ENGLISH] Calculates the standard deviation of a list of Durations.
+  ///  Calculates the standard deviation of a list of Durations.
   /// This helps measure the jitter or variability of the performance.
   /// [durations] - The list of time measurements.
   /// [mean] - The pre-calculated average of the durations.
   Duration _calculateStandardDeviation(
       List<Duration> durations, Duration mean) {
     if (durations.length < 2) return Duration.zero;
-    // [ENGLISH] 1. Calculate the variance.
+    //  1. Calculate the variance.
     final variance = durations
             .map((d) => pow(d.inMicroseconds - mean.inMicroseconds, 2))
             .reduce((a, b) => a + b) /
         (durations.length - 1); // Using sample standard deviation (n-1).
-    // [ENGLISH] 2. Standard deviation is the square root of the variance.
+    //  2. Standard deviation is the square root of the variance.
     return Duration(microseconds: sqrt(variance).round());
   }
 
